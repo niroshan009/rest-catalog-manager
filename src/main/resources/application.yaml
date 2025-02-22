@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: rest-catalog-manager
+  datasource:
+    url: jdbc:postgresql://localhost:5432/catalog_management
+    username: postgres
+    password: yourpassword
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+#server:
+#    port: 8081
+catalog:
+  changes:
+    - name: "Create test table"
+      id: 1
+      description: "create test table"
+      author: "test"
+      table: "test_table1234"
+      namespace: "nyc"
+      struct: "./change_json/create_test_table.json"
+      action: "create"
+
+    - name: "Create test2 table"
+      id: 2
+      description: "create test 2 table"
+      author: "test"
+      table: "test_table2"
+      namespace: "nyc"
+      struct: "./change_json/create_test_table2.json"
+      action: "create"
+
+iceberg:
+  endpoint: http://localhost:8181/v1/
+  api:
+    version: v1
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG
+        hibernate: ERROR
+

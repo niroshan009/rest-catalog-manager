@@ -1,5 +1,5 @@
 {
-  "name": "test_table1234",
+  "name": "test_table2",
   "schema": {
     "type": "struct",
     "fields": [
@@ -30,7 +30,7 @@
       1
     ]
   },
-  "location": "s3://warehouse/wh/",
+  "location": "s3://warehouse/demo_table/",
   "partition-spec": {
     "fields": [
       {
