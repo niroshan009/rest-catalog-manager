@@ -3,6 +3,7 @@ package com.kd.iceberg.rest.catalog.manager.entity;
 
 import com.kd.iceberg.rest.catalog.manager.constants.ChangeType;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SourceType;
@@ -13,6 +14,7 @@ import java.util.Objects;
 
 @Data
 @Entity
+@Builder
 public class ChangeLog {
 
     @Id
@@ -24,16 +26,17 @@ public class ChangeLog {
     @Enumerated(EnumType.STRING)
     private ChangeType changeType;
 
-    private String iceberg_table;
+    private String icebergTable;
 
     private String author;
 
-    private String iceberg_namespace;
+    private String icebergNamespace;
 
     private String changeDescription;
 
+    private String rollbackStruct;
 
-
+    private String tableStruct;
 
 
     @CreationTimestamp(source = SourceType.DB)

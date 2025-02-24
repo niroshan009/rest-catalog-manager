@@ -20,4 +20,6 @@ public class Changes {
 
     private String struct;
 
+    private String rollbackStruct;
+
 }

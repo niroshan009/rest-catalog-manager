@@ -21,8 +21,10 @@ catalog:
       author: "test"
       table: "test_table1234"
       namespace: "nyc"
-      struct: "./change_json/create_test_table.json"
+      rollback_struct: "./change_jsons/create_test_table.json"
       action: "create"
+      struct: "./change_jsons/create_test_table.json"
+
 
     - name: "Create test2 table"
       id: 2
@@ -30,8 +32,9 @@ catalog:
       author: "test"
       table: "test_table2"
       namespace: "nyc"
-      struct: "./change_json/create_test_table2.json"
+      struct: "./change_jsons/create_test_table2.json"
       action: "create"
+
 
 iceberg:
   endpoint: http://localhost:8181/v1/

@@ -2,6 +2,9 @@ package com.kd.iceberg.rest.catalog.manager.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kd.iceberg.rest.catalog.manager.constants.ChangeType;
+import com.kd.iceberg.rest.catalog.manager.entity.ChangeLog;
+import com.kd.iceberg.rest.catalog.manager.exception.IcebergTableDDLException;
 import com.kd.iceberg.rest.catalog.manager.model.iceberg.table.create.CreateTableReqeust;
 
 
@@ -15,14 +18,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.*;
 
 
 @Slf4j
@@ -52,6 +53,8 @@ public class ChangeLogServiceImpl implements ChangeLogService {
 
         YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
 
+        Stack<ChangeLog> changeLogStack = new Stack<>();
+
 
         for (Changes changes : catalogProperties.getChanges()) {
 
@@ -72,12 +75,66 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                             .header("Content-Type", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(tableStructure))
                             .build();
-                    HttpResponse<String> response = HttpClient.newBuilder()
-                            .build()
-                            .send(request, HttpResponse.BodyHandlers.ofString());
+                    try {HttpResponse r = HttpClient.newBuilder()
+                                .build()
+                                .send(request, HttpResponse.BodyHandlers.ofString());
+                        System.out.println(r.statusCode());
+
+                        if(r.statusCode() != 200){
+                            log.error("Error while creating table: {}", r.body().toString());
+                            throw new IcebergTableDDLException(changeLogStack, r.body().toString());
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        log.error("Error while creating table: {}", e.getMessage());
+                        throw new IcebergTableDDLException(changeLogStack, e.getMessage());
+                    }
+
+                    changeLogStack.push(ChangeLog.builder()
+                            .changeLogName(changes.getName())
+                            .changeType(ChangeType.CREATE)
+                            .icebergTable(changes.getTable())
+                            .author(changes.getAuthor())
+                            .icebergNamespace(changes.getNamespace())
+                            .changeDescription(changes.getDescription())
+                            .build());
+
                 }
-                case "drop" -> log.info("Dropping table: {}", changes.getTable());
-                case "alter" -> log.info("Altering table: {}", changes.getTable());
+                case "drop" -> {
+
+                    log.info("Dropping table: {}", changes.getTable());
+
+                    if(null == changes.getRollbackStruct()){
+                        throw new RuntimeException("Rollback structure is missing for drop action");
+                    }
+
+
+                    String url = String.format("http://localhost:8181/v1/namespaces/%s/tables/%s?purgeRequested=true",changes.getNamespace(), changes.getTable());
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(url))
+                            .header("Content-Type", "application/json")
+                            .DELETE()
+                            .build();
+                   try {
+                       HttpClient.newBuilder()
+                               .build()
+                               .send(request, HttpResponse.BodyHandlers.ofString());
+                   } catch (IOException | InterruptedException e) {
+                       log.error("Error while dropping table: {}", e.getMessage());
+                       throw new IcebergTableDDLException(changeLogStack, e.getMessage());
+                   }
+
+                    changeLogStack.push(ChangeLog.builder()
+                            .changeLogName(changes.getName())
+                            .changeType(ChangeType.DROP)
+                            .icebergTable(changes.getTable())
+                            .author(changes.getAuthor())
+                            .rollbackStruct(changes.getRollbackStruct())
+                            .icebergNamespace(changes.getNamespace())
+                            .changeDescription(changes.getDescription())
+                            .build());
+                }
+
+
             }
 
         }
