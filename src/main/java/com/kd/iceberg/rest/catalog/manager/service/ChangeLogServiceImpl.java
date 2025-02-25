@@ -24,6 +24,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -53,10 +54,17 @@ public class ChangeLogServiceImpl implements ChangeLogService {
 
         YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
 
+        List<ChangeLog> changeLogs = changeLogRepository.findAll();
+
+        List<Changes> nonExistingChangeLog =  catalogProperties.getChanges()
+                .stream()
+                .filter(e-> !changeLogs.stream().filter(ex -> ex.getChangeLogName().equals(e.getName())).findFirst().isPresent())
+                .collect(Collectors.toList());
+
         Stack<ChangeLog> changeLogStack = new Stack<>();
 
 
-        for (Changes changes : catalogProperties.getChanges()) {
+        for (Changes changes : nonExistingChangeLog) {
 
             switch (changes.getAction()) {
                 case "create" -> {
@@ -89,14 +97,16 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                         throw new IcebergTableDDLException(changeLogStack, e.getMessage());
                     }
 
-                    changeLogStack.push(ChangeLog.builder()
-                            .changeLogName(changes.getName())
-                            .changeType(ChangeType.CREATE)
-                            .icebergTable(changes.getTable())
-                            .author(changes.getAuthor())
-                            .icebergNamespace(changes.getNamespace())
-                            .changeDescription(changes.getDescription())
-                            .build());
+                    ChangeLog changeLog = new ChangeLog();
+                    changeLog.setChangeLogName(changes.getName());
+                    changeLog.setChangeType(ChangeType.CREATE);
+                    changeLog.setIcebergTable(changes.getTable());
+                    changeLog.setAuthor(changes.getAuthor());
+                    changeLog.setIcebergNamespace(changes.getNamespace());
+                    changeLog.setChangeDescription(changes.getDescription());
+                    changeLog.setTableStruct(changes.getStruct());
+
+                    changeLogStack.push(changeLog);
 
                 }
                 case "drop" -> {
@@ -123,22 +133,22 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                        throw new IcebergTableDDLException(changeLogStack, e.getMessage());
                    }
 
-                    changeLogStack.push(ChangeLog.builder()
-                            .changeLogName(changes.getName())
-                            .changeType(ChangeType.DROP)
-                            .icebergTable(changes.getTable())
-                            .author(changes.getAuthor())
-                            .rollbackStruct(changes.getRollbackStruct())
-                            .icebergNamespace(changes.getNamespace())
-                            .changeDescription(changes.getDescription())
-                            .build());
+                    ChangeLog changeLog = new ChangeLog();
+                    changeLog.setChangeLogName(changes.getName());
+                    changeLog.setChangeType(ChangeType.DROP);
+                    changeLog.setIcebergTable(changes.getTable());
+                    changeLog.setAuthor(changes.getAuthor());
+                    changeLog.setIcebergNamespace(changes.getNamespace());
+                    changeLog.setChangeDescription(changes.getDescription());
+                    changeLog.setTableStruct(changes.getStruct());
+
+                    changeLogStack.push(changeLog);
                 }
-
-
             }
 
         }
 
+        changeLogRepository.saveAll(changeLogStack);
 
         System.out.println("=====");
 

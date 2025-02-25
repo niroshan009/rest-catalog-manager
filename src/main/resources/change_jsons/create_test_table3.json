@@ -1,0 +1,60 @@
+{
+  "name": "test_table3",
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "id": 1,
+        "name": "id",
+        "type": "int",
+        "required": true,
+        "doc": "Primary key identifier"
+      },
+      {
+        "id": 2,
+        "name": "name",
+        "type": "string",
+        "required": false,
+        "doc": "Entity name"
+      },
+      {
+        "id": 3,
+        "name": "created_at",
+        "type": "timestamp",
+        "required": true,
+        "doc": "Creation timestamp"
+      }
+    ],
+    "schema-id": 1,
+    "identifier-field-ids": [
+      1
+    ]
+  },
+  "location": "s3://warehouse/demo_table/",
+  "partition-spec": {
+    "fields": [
+      {
+        "source-id": 3,
+        "transform": "day",
+        "name": "created_at_day",
+        "field-id": 4
+      }
+    ],
+    "spec-id": 1
+  },
+  "write-order": {
+    "order-id": 1,
+    "fields": [
+      {
+        "source-id": 3,
+        "transform": "identity",
+        "direction": "desc",
+        "null-order": "nulls-first"
+      }
+    ]
+  },
+  "stage-create": false,
+  "properties": {
+    "format-version": "2"
+  }
+}

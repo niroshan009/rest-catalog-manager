@@ -3,8 +3,10 @@ package com.kd.iceberg.rest.catalog.manager.entity;
 
 import com.kd.iceberg.rest.catalog.manager.constants.ChangeType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SourceType;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -14,7 +16,8 @@ import java.util.Objects;
 
 @Data
 @Entity
-@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChangeLog {
 
     @Id

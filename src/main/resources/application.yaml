@@ -35,6 +35,15 @@ catalog:
       struct: "./change_jsons/create_test_table2.json"
       action: "create"
 
+    - name: "Create test3 table"
+      id: 3
+      description: "create test 2 table"
+      author: "test"
+      table: "test_table3"
+      namespace: "nyc"
+      struct: "./change_jsons/create_test_table3.json"
+      action: "create"
+
 
 iceberg:
   endpoint: http://localhost:8181/v1/
