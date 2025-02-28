@@ -10,6 +10,7 @@ import com.kd.iceberg.rest.catalog.manager.model.Changes;
 import com.kd.iceberg.rest.catalog.manager.model.iceberg.table.create.CreateTableReqeust;
 import com.kd.iceberg.rest.catalog.manager.properties.CatalogProperties;
 import com.kd.iceberg.rest.catalog.manager.repository.ChangeLogRepository;
+import com.kd.iceberg.rest.catalog.manager.utility.RestUtility;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -91,7 +92,7 @@ public class ChangeLogServiceImpl implements ChangeLogService {
 
         changeLogRepository.deleteAll(changeLogStack);
 
-        System.out.println("here");
+        log.info("Rollback completed successfully");
     }
 
 
@@ -139,6 +140,7 @@ public class ChangeLogServiceImpl implements ChangeLogService {
         }
 
         changeLogRepository.saveAll(changeLogStack);
+        log.info("Change log updated successfully");
     }
 
 
@@ -157,10 +159,7 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                 .header("Content-Type", "application/json")
                 .DELETE()
                 .build();
-        try {
-            HttpClient.newBuilder()
-                    .build()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
+        try {RestUtility.dropTable(url);
         } catch (IOException | InterruptedException e) {
             log.error("Error while dropping table: {}", e.getMessage());
             throw new IcebergTableDDLException(e.getMessage());
@@ -181,20 +180,12 @@ public class ChangeLogServiceImpl implements ChangeLogService {
         String namespace = changes.getNamespace();
         String url = String.format("%s/namespaces/%s/tables", icebergEndpoint, namespace);
         log.info("URL: {}", url);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(java.net.URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(tableStructure))
-                .build();
-        try {
-            HttpResponse r = HttpClient.newBuilder()
-                    .build()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(r.statusCode());
+
+        try {HttpResponse<String> r = RestUtility.createTable(url, changes.getStruct());
 
             if (r.statusCode() != 200) {
-                log.error("Error while creating table: {}", r.body().toString());
-                throw new IcebergTableDDLException(r.body().toString());
+                log.error("Error while creating table: {}", r.body());
+                throw new IcebergTableDDLException(r.body());
             }
         } catch (IOException | InterruptedException e) {
             log.error("Error while creating table: {}", e.getMessage());

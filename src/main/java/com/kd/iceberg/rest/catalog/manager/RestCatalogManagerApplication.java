@@ -3,12 +3,14 @@ package com.kd.iceberg.rest.catalog.manager;
 import com.kd.iceberg.rest.catalog.manager.constants.ChangeType;
 import com.kd.iceberg.rest.catalog.manager.constants.Workflow;
 import com.kd.iceberg.rest.catalog.manager.service.ChangeLogService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+@Slf4j
 @SpringBootApplication
 public class RestCatalogManagerApplication implements ApplicationRunner {
 
@@ -20,20 +22,9 @@ public class RestCatalogManagerApplication implements ApplicationRunner {
 	@Autowired
 	private ChangeLogService changeLogService;
 
-//	@Override
-//	public void run(String... args) throws Exception {
-//		System.out.println("******* Starting to run the application *******");
-//
-//		changeLogService.executeChangeLog();
-//
-//
-//
-//		System.out.println("******* Ending the application *******");
-//	}
-
 	@Override
 	public void run(ApplicationArguments args) throws Exception {
-		System.out.println("******* Starting to run the application *******");
+		log.info("******* Starting to run the application *******");
 
 		String changeType = args.getOptionValues("workflow").get(0);
 		String tag = args.getOptionValues("tag").get(0);
@@ -44,6 +35,6 @@ public class RestCatalogManagerApplication implements ApplicationRunner {
 
 		changeLogService.executeChangeLog(Workflow.valueOf(changeType), tag);
 
-		System.out.println("******* Ending the application *******");
+		log.info("******* Ending the application *******");
 	}
 }

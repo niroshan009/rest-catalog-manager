@@ -11,8 +11,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-#server:
-#    port: 8081
+
 catalog:
   changes:
     - name: "Create test table"
