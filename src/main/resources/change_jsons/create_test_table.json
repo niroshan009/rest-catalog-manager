@@ -1,5 +1,5 @@
 {
-  "name": "test_table1234",
+  "name": "test_table1",
   "schema": {
     "type": "struct",
     "fields": [

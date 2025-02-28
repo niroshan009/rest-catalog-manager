@@ -17,9 +17,9 @@ catalog:
   changes:
     - name: "Create test table"
       id: 1
-      description: "create test table"
+      description: "create test 1 table"
       author: "test"
-      table: "test_table1234"
+      table: "test_table1"
       namespace: "nyc"
       rollback_struct: "./change_jsons/create_test_table.json"
       action: "create"
@@ -38,7 +38,7 @@ catalog:
 
     - name: "Create test3 table"
       id: 3
-      description: "create test 2 table"
+      description: "create test 3 table"
       author: "test"
       table: "test_table3"
       namespace: "nyc"
