@@ -6,10 +6,8 @@ import com.kd.iceberg.rest.catalog.manager.constants.ChangeType;
 import com.kd.iceberg.rest.catalog.manager.constants.Workflow;
 import com.kd.iceberg.rest.catalog.manager.entity.ChangeLog;
 import com.kd.iceberg.rest.catalog.manager.exception.IcebergTableDDLException;
-import com.kd.iceberg.rest.catalog.manager.model.iceberg.table.create.CreateTableReqeust;
-
-
 import com.kd.iceberg.rest.catalog.manager.model.Changes;
+import com.kd.iceberg.rest.catalog.manager.model.iceberg.table.create.CreateTableReqeust;
 import com.kd.iceberg.rest.catalog.manager.properties.CatalogProperties;
 import com.kd.iceberg.rest.catalog.manager.repository.ChangeLogRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +21,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.List;
+import java.util.Stack;
 
 
 @Slf4j
@@ -38,10 +37,6 @@ public class ChangeLogServiceImpl implements ChangeLogService {
     @Value("${iceberg.endpoint}")
     private String icebergEndpoint;
 
-    @Value("${iceberg.api.version}")
-    private String icebergApiVersion;
-
-
 
     public ChangeLogServiceImpl(CatalogProperties catalogProperties, ChangeLogRepository changeLogRepository) {
         this.catalogProperties = catalogProperties;
@@ -52,28 +47,65 @@ public class ChangeLogServiceImpl implements ChangeLogService {
     public void executeChangeLog(Workflow workflow, String tag) throws IOException, InterruptedException {
 
 
-
         switch (workflow) {
             case UPDATE -> update(tag);
             case ROLLBACK -> rollback(tag);
         }
 
-
-
-        System.out.println("=====");
+        log.info("Change log executed successfully");
     }
 
     private void rollback(String tag) {
+        Stack<ChangeLog> changeLogStack = changeLogRepository.findLatestRecordsByTagIdToRollback(tag);
+
+        for (ChangeLog changeLog : changeLogStack) {
+
+            switch (changeLog.getChangeType()) {
+                case CREATE -> {
+                    try {
+                        catalogProperties.getChanges().stream().filter(e -> e.getName().equals(changeLog.getChangeLogName())).findFirst().ifPresent(e -> {
+                            try {
+                                dropTable(e, changeLog);
+                            } catch (IcebergTableDDLException icebergTableDDLException) {
+                                icebergTableDDLException.printStackTrace();
+                            }
+                        });
+
+                    } catch (IcebergTableDDLException icebergTableDDLException) {
+                        icebergTableDDLException.printStackTrace();
+                    }
+                }
+                case DROP -> {
+                    catalogProperties.getChanges().stream().filter(e -> e.getName().equals(changeLog.getChangeLogName())).findFirst().ifPresent(e -> {
+                        try {
+                            createChangeLog(e, changeLog);
+                        } catch (IcebergTableDDLException icebergTableDDLException) {
+                            icebergTableDDLException.printStackTrace();
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    });
+                }
+            }
+        }
+
+        changeLogRepository.deleteAll(changeLogStack);
+
+        System.out.println("here");
     }
 
 
     private void update(String tag) throws IOException, InterruptedException {
         Stack<ChangeLog> changeLogStack = new Stack<>();
+        Stack<ChangeLog> existingTags = changeLogRepository.findAllByTagOrderByIdAsc(tag);
+        if (!existingTags.isEmpty()) {
+            throw new RuntimeException("Existing tag found. Please rollback the existing tag before updating");
+        }
         List<ChangeLog> changeLogs = changeLogRepository.findAll();
 
-        List<Changes> nonExistingChangeLog =  catalogProperties.getChanges()
+        List<Changes> nonExistingChangeLog = catalogProperties.getChanges()
                 .stream()
-                .filter(e-> !changeLogs.stream().anyMatch(ex -> ex.getChangeLogName().equals(e.getName())))
+                .filter(e -> !changeLogs.stream().anyMatch(ex -> ex.getChangeLogName().equals(e.getName())))
                 .toList();
 
         for (Changes changes : nonExistingChangeLog) {
@@ -96,7 +128,7 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                     }
                 }
                 case "drop" -> {
-                    try{
+                    try {
                         ChangeLog dropChangeLog = dropTable(changes, changeLog);
                         changeLogStack.push(dropChangeLog);
                     } catch (IcebergTableDDLException icebergTableDDLException) {
@@ -113,12 +145,12 @@ public class ChangeLogServiceImpl implements ChangeLogService {
     private ChangeLog dropTable(Changes changes, ChangeLog changeLog) throws IcebergTableDDLException {
         log.info("Dropping table: {}", changes.getTable());
 
-        if(null == changes.getRollbackStruct()){
+        if (null == changes.getRollbackStruct()) {
             throw new RuntimeException("Rollback structure is missing for drop action");
         }
 
 
-        String url = String.format("%s1/namespaces/%s/tables/%s?purgeRequested=true",icebergEndpoint,
+        String url = String.format("%s/namespaces/%s/tables/%s?purgeRequested=true", icebergEndpoint,
                 changes.getNamespace(), changes.getTable());
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(java.net.URI.create(url))
@@ -154,18 +186,19 @@ public class ChangeLogServiceImpl implements ChangeLogService {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(tableStructure))
                 .build();
-        try {HttpResponse r = HttpClient.newBuilder()
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
+        try {
+            HttpResponse r = HttpClient.newBuilder()
+                    .build()
+                    .send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println(r.statusCode());
 
-            if(r.statusCode() != 200){
+            if (r.statusCode() != 200) {
                 log.error("Error while creating table: {}", r.body().toString());
-                throw new IcebergTableDDLException( r.body().toString());
+                throw new IcebergTableDDLException(r.body().toString());
             }
         } catch (IOException | InterruptedException e) {
             log.error("Error while creating table: {}", e.getMessage());
-            throw new IcebergTableDDLException( e.getMessage());
+            throw new IcebergTableDDLException(e.getMessage());
         }
 
         changeLog.setChangeType(ChangeType.CREATE);

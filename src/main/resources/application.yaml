@@ -33,6 +33,7 @@ catalog:
       table: "test_table2"
       namespace: "nyc"
       struct: "./change_jsons/create_test_table2.json"
+      rollback_struct: "./change_jsons/create_test_table2.json"
       action: "create"
 
     - name: "Create test3 table"
@@ -42,6 +43,7 @@ catalog:
       table: "test_table3"
       namespace: "nyc"
       struct: "./change_jsons/create_test_table3.json"
+      rollback_struct: "./change_jsons/create_test_table3.json"
       action: "create"
 
 
