@@ -46,7 +46,7 @@ catalog:
 
 
 iceberg:
-  endpoint: http://localhost:8181/v1/
+  endpoint: http://localhost:8181/v1
   api:
     version: v1
 logging:

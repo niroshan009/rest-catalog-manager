@@ -41,6 +41,8 @@ public class ChangeLog {
 
     private String tableStruct;
 
+    private String tag;
+
 
     @CreationTimestamp(source = SourceType.DB)
     private Instant createdOn;
