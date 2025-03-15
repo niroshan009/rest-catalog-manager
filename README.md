@@ -46,7 +46,7 @@ Current implementation supports ```UPDATE``` and ```ROLLBACK``` where
 * ROLLBACK: will execute changesets in a manner that will delete the executed changeset earlier. This will Roll back from LIFO approach. Last executed will be deleted first and revert the changes affected to iceberg
 
 ## Change management and Exception handling
-This will check the last executed changes and just run new changes without executing previous changes
+This will check the last executed changes and just run new changes without executing previous changes\
 In case of exception to one changeset will roll back current executing changeset.
 
 
